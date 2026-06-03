@@ -1,0 +1,265 @@
+<!DOCTYPE html><html class="h-full" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>上传 - IBKR Report Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#0d1c2f",
+                        "tertiary-container": "#0d1c2f",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#920029",
+                        "secondary": "#b80938",
+                        "tertiary": "#000000",
+                        "surface": "#f8f9ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-primary-fixed": "#131b2e",
+                        "on-surface": "#0b1c30",
+                        "secondary-fixed-dim": "#ffb2b7",
+                        "background": "#f8f9ff",
+                        "outline-variant": "#c6c6cd",
+                        "inverse-surface": "#213145",
+                        "primary-fixed": "#dae2fd",
+                        "surface-bright": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "secondary-container": "#db2e4e",
+                        "on-tertiary-container": "#76859b",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#b9c7e0",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#45464d",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary-fixed": "#d5e3fd",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#7c839b",
+                        "surface-container": "#e5eeff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-tertiary-fixed-variant": "#3a485c",
+                        "secondary-fixed": "#ffdadb",
+                        "surface-container-low": "#eff4ff",
+                        "outline": "#76777d",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#bec6e0",
+                        "surface-variant": "#d3e4fe",
+                        "primary": "#000000",
+                        "primary-container": "#131b2e",
+                        "surface-tint": "#565e74",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#40000d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "margin": "24px",
+                        "gutter": "16px",
+                        "container-max": "1440px",
+                        "stack-compact": "8px",
+                        "stack-dense": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "data-tabular": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "data-tabular": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .drag-active {
+            border-color: #b80938 !important;
+            background-color: #eff4ff !important;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-full flex flex-col">
+<!-- TopNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface w-full top-0 sticky border-b border-outline-variant dark:border-outline flat no shadows z-50">
+<div class="flex justify-between items-center px-margin h-14 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-gutter">
+<div class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                    IBKR Report Studio
+                </div>
+</div>
+<div class="hidden md:flex items-center gap-gutter h-full">
+<a class="h-full flex items-center text-on-surface-variant dark:text-on-tertiary-container hover:text-primary font-body-md text-body-md hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors px-2 cursor-pointer active:opacity-80" href="#">总览</a>
+<a class="h-full flex items-center text-on-surface-variant dark:text-on-tertiary-container hover:text-primary font-body-md text-body-md hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors px-2 cursor-pointer active:opacity-80" href="#">头寸</a>
+<a class="h-full flex items-center text-on-surface-variant dark:text-on-tertiary-container hover:text-primary font-body-md text-body-md hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors px-2 cursor-pointer active:opacity-80" href="#">收益</a>
+<a class="h-full flex items-center text-on-surface-variant dark:text-on-tertiary-container hover:text-primary font-body-md text-body-md hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors px-2 cursor-pointer active:opacity-80" href="#">数据</a>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<button class="hover:bg-surface-container-low p-2 rounded-full transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">language</span>
+</button>
+<button class="hover:bg-surface-container-low p-2 rounded-full transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant cursor-pointer" data-alt="A small, professional circular profile picture of a person, used as an avatar in a stark, clean corporate application header." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABtNmK4bKMMgSh4ktvkOnNz_NxtcnjW6ZaDRmAHfo_9hrKKqkcC999UQX2hq6ii8HI0LNcU5jJ_yMWVLmKeBDc5iSJYE11xKNvsF3QzukILoT7sbDRP8PjUPeBDxG5cuKoLenDjw5bFa5OgEdyAafn_rtTIVrw5yl3Og2Uow_g5K_7AXRY8T2hoAAPccQwv1kJtHVj4_tRaCuc9hmYA89aPfvFP6EdtRj5psbhCPeuO9gs2gcBSbJkC0hellXbQeifGpcZj5TrUhY">
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col items-center justify-center p-margin max-w-container-max mx-auto w-full gap-8">
+<!-- Header Text -->
+<div class="text-center max-w-2xl">
+<h1 class="font-headline-lg text-headline-lg mb-stack-compact text-on-surface">上传活动报表</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">拖放您的盈透证券 (IBKR) CSV 报表以开始分析。</p>
+</div>
+<!-- Privacy Banner -->
+<div class="bg-surface-container flex items-start gap-3 p-4 rounded-lg border border-outline-variant max-w-3xl w-full">
+<span class="material-symbols-outlined text-secondary mt-0.5" style="font-variation-settings: 'FILL' 1;">lock</span>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold mb-1">仅限本地处理</p>
+<p class="font-body-md text-body-md text-on-surface-variant">在您的浏览器中本地处理。没有任何财务数据会被上传到我们的服务器。您的隐私在设计上得到保证。</p>
+</div>
+</div>
+<!-- Two Column Layout for Upload & Guide -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter w-full max-w-5xl">
+<!-- Upload Area (Span 2) -->
+<div class="lg:col-span-2 flex flex-col gap-gutter">
+<!-- Dropzone -->
+<div class="border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest p-12 flex flex-col items-center justify-center text-center transition-all duration-200 hover:bg-surface-container-low cursor-pointer min-h-[300px]" id="dropzone">
+<span class="material-symbols-outlined text-6xl text-outline mb-4">upload_file</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">拖放 CSV 文件</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">或点击从您的电脑中浏览</p>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2 rounded font-medium hover:bg-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2">
+                        选择文件
+                    </button>
+<input accept=".csv,.txt" class="hidden" id="file-upload" type="file">
+</div>
+<!-- Paste Area Expansion -->
+<details class="group border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden">
+<summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-container-low transition-colors font-label-md text-label-md text-on-surface font-bold">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">content_paste</span>
+                            或者粘贴 CSV 文本
+                        </div>
+<span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="p-4 border-t border-outline-variant">
+<textarea class="w-full h-32 p-3 border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary font-data-tabular text-data-tabular resize-y" placeholder="在此粘贴逗号分隔的值..."></textarea>
+<div class="flex justify-end mt-stack-compact">
+<button class="bg-surface-container-highest text-on-surface font-label-md text-label-md px-4 py-2 rounded hover:bg-outline-variant transition-colors">处理文本</button>
+</div>
+</div>
+</details>
+</div>
+<!-- Guide Sidebar -->
+<div class="flex flex-col gap-gutter">
+<!-- How to Export Card -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest p-6">
+<h3 class="font-label-md text-label-md text-on-surface font-bold flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant">help</span>
+                        如何从 IBKR 导出
+                    </h3>
+<ol class="list-decimal list-inside space-y-3 font-body-md text-body-md text-on-surface-variant">
+<li class="">登录到客户端门户</li>
+<li class="">转到 <strong>业绩与报告</strong> &gt; <strong>报表</strong></li>
+<li class="">选择 <strong>活动</strong></li>
+<li class="">将格式设置为 <strong>CSV</strong></li>
+<li class="">选择日期范围并点击 <strong>运行</strong></li>
+</ol>
+<div class="mt-4 pt-4 border-t border-outline-variant">
+<a class="text-secondary hover:text-secondary-container font-label-md text-label-md flex items-center gap-1" href="#">
+                            阅读详细文档 <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Supported Sections -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest p-6">
+<h3 class="font-label-md text-label-md text-on-surface font-bold mb-4">支持的数据板块</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">净资产值 (NAV)</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">未平仓头寸</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">交易</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">股息</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">现金报告</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-label-sm text-label-sm text-on-surface border border-outline-variant">按市价计算表现</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest dark:bg-on-tertiary-fixed w-full py-4 mt-auto border-t border-outline-variant dark:border-outline flat no shadows">
+<div class="flex flex-col items-center justify-center gap-2 px-margin text-center max-w-container-max mx-auto">
+<div class="flex gap-4 font-label-sm text-label-sm">
+<a class="text-on-surface-variant opacity-80 hover:text-primary underline transition-opacity" href="#">隐私政策</a>
+<a class="text-on-surface-variant opacity-80 hover:text-primary underline transition-opacity" href="#">安全白皮书</a>
+<a class="text-on-surface-variant opacity-80 hover:text-primary underline transition-opacity" href="#">API 文档</a>
+</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant dark:text-on-tertiary-container">
+                © 2024 IBKR Report Studio。所有处理都在您的浏览器中本地进行。没有财务数据传输到我们的服务器。
+            </div>
+</div>
+</footer>
+<script>
+        // Simple Drag and Drop visual feedback
+        const dropzone = document.getElementById('dropzone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropzone.classList.add('drag-active');
+        }
+
+        function unhighlight(e) {
+            dropzone.classList.remove('drag-active');
+        }
+
+        dropzone.addEventListener('click', () => {
+            document.getElementById('file-upload').click();
+        });
+    </script>
+
+
+</body></html>

@@ -1,0 +1,12 @@
+node_modules/
+.vercel/
+dist/
+outputs/
+*.log
+stitch-reference/chrome-lang-profile/
+windows/**/bin/
+windows/**/obj/
+windows/**/publish/
+*.user
+.DS_Store
+Thumbs.db
