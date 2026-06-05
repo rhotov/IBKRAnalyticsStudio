@@ -295,7 +295,13 @@ cd windows\IBKRAnalyticsStudio.WebView2
 .\build.ps1 -SelfContained
 ```
 
-框架依赖版本体积更小，但目标机器需要 .NET Desktop Runtime。自包含版本更大，但更适合分发给没有 .NET 环境的机器。
+发布干净便携版本：
+
+```powershell
+.\build.ps1 -SingleFile
+```
+
+框架依赖版本体积更小，但目标机器需要 .NET Desktop Runtime。自包含版本更大，但更适合分发给没有 .NET 环境的机器。干净便携版本会把 .NET/WebView2 依赖收进单个 exe，解压后根目录只包含 `IBKRAnalyticsStudio.exe` 和 `wwwroot` 文件夹。
 
 ## 目录结构
 
