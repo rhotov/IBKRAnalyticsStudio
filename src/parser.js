@@ -211,6 +211,26 @@ function collectFlexSections(rows) {
     }));
   }
 
+  const flexCashTransactionRows = flexRowsBySectionName(rawByCode, namesByCode, /Cash Transactions/i);
+  if (flexCashTransactionRows.length) {
+    sections["Cash Transactions"] = flexCashTransactionRows.map(flexCashTransactionRow);
+  }
+
+  const flexDividendRows = flexRowsBySectionName(rawByCode, namesByCode, /^Dividends$/i);
+  if (flexDividendRows.length) {
+    sections.Dividends = flexDividendRows.map(flexDividendRow);
+  }
+
+  const flexDividendAccrualRows = flexRowsBySectionName(rawByCode, namesByCode, /Change in Dividend Accruals/i);
+  if (flexDividendAccrualRows.length) {
+    sections["Change in Dividend Accruals"] = flexDividendAccrualRows.map(flexDividendAccrualRow);
+  }
+
+  const flexOpenDividendAccrualRows = flexRowsBySectionName(rawByCode, namesByCode, /Open Dividend Accruals/i);
+  if (flexOpenDividendAccrualRows.length) {
+    sections["Open Dividend Accruals"] = flexOpenDividendAccrualRows.map(flexDividendAccrualRow);
+  }
+
   const feeRows = [
     ...(rawByCode.TRTX || []).map((row) => ({
       Date: row.Date || row.ReportDate || "",
@@ -234,6 +254,12 @@ function collectFlexSections(rows) {
   }
 
   return Object.fromEntries(Object.entries(sections).filter(([, value]) => value?.length));
+}
+
+function flexRowsBySectionName(rawByCode, namesByCode, pattern) {
+  return Object.entries(rawByCode)
+    .filter(([code]) => pattern.test(namesByCode[code] || code))
+    .flatMap(([, rows]) => rows);
 }
 
 function cleanFlexCell(value) {
@@ -473,6 +499,45 @@ function flexMtmRow(row) {
     Symbol: row.Symbol || "",
     "Current Price": row.ClosePrice || "0",
     "Mark-to-Market P/L Total": row.Total || row.TotalWithAccruals || "0"
+  };
+}
+
+function flexDividendRow(row) {
+  return {
+    Currency: row.CurrencyPrimary || row.Currency || "",
+    Date: row.Date || row.PayDate || row.ReportDate || "",
+    Symbol: row.Symbol || row.UnderlyingSymbol || "",
+    Description: row.Description || "",
+    Amount: row.Amount || row.Total || row.NetAmount || row.GrossAmount || "0"
+  };
+}
+
+function flexCashTransactionRow(row) {
+  return {
+    Currency: row.CurrencyPrimary || row.Currency || "",
+    Date: row.DateTime || row.Date || row.ReportDate || row.SettleDate || "",
+    Symbol: row.Symbol || row.UnderlyingSymbol || "",
+    Description: row.Description || row.Type || row.TransactionType || row.ActivityType || "",
+    Type: row.Type || row.TransactionType || row.ActivityType || "",
+    Amount: row.Amount || row.NetAmount || row.Total || row.Cash || "0"
+  };
+}
+
+function flexDividendAccrualRow(row) {
+  return {
+    "Asset Category": flexAssetCategory(row.AssetClass),
+    Currency: row.CurrencyPrimary || row.Currency || "",
+    Symbol: row.Symbol || row.UnderlyingSymbol || "",
+    Date: row.Date || row.ReportDate || "",
+    "Ex Date": row.ExDate || "",
+    "Pay Date": row.PayDate || "",
+    Quantity: row.Quantity || "0",
+    Tax: row.Tax || "0",
+    Fee: row.Fee || "0",
+    "Gross Rate": row.GrossRate || "0",
+    "Gross Amount": row.GrossAmount || "0",
+    "Net Amount": row.NetAmount || row.Amount || "0",
+    Code: row.Code || row["Notes/Codes"] || ""
   };
 }
 
@@ -903,24 +968,55 @@ function parseDividendIncome(sections, exchangeRates) {
   const bySymbol = {};
   let total = 0;
 
+  const addDividend = (symbol, currency, amount) => {
+    if (!symbol) return;
+    const value = amount * (exchangeRates[currency || "USD"] || 1);
+    if (!value) return;
+
+    bySymbol[symbol] = (bySymbol[symbol] || 0) + value;
+    total += value;
+  };
+
   for (const row of sections.Dividends || []) {
     if (row.Currency === "Total") continue;
 
     const symbol = parseDividendSymbol(row);
-    if (!symbol) continue;
+    addDividend(symbol, row.Currency || "USD", toNumber(row.Amount));
+  }
 
-    const currency = row.Currency || "USD";
-    const value = toNumber(row.Amount) * (exchangeRates[currency] || 1);
-    if (!value) continue;
+  for (const row of sections["Cash Transactions"] || []) {
+    if (!isDividendCashTransaction(row)) continue;
+    const symbol = parseDividendSymbol(row);
+    addDividend(symbol, row.Currency || "USD", toNumber(row.Amount));
+  }
 
-    bySymbol[symbol] = (bySymbol[symbol] || 0) + value;
-    total += value;
+  const dividendAccrualRows = sections["Change in Dividend Accruals"]?.length
+    ? sections["Change in Dividend Accruals"]
+    : (sections["Open Dividend Accruals"] || []);
+
+  for (const row of dividendAccrualRows) {
+    if (row["Asset Category"]?.startsWith("Total")) continue;
+    const symbol = parseDividendSymbol(row);
+    addDividend(symbol, row.Currency || "USD", readDividendAccrualAmount(row));
   }
 
   return {
     bySymbol,
     total
   };
+}
+
+function readDividendAccrualAmount(row) {
+  const amount = toNumber(readValue(row, ["Net Amount", "Net Amnt", "Amount"]));
+  const code = String(row.Code || "").toUpperCase();
+  if (amount > 0 && /\bRE\b/.test(code)) return -amount;
+  return amount;
+}
+
+function isDividendCashTransaction(row) {
+  const text = `${row.Type || ""} ${row.Description || ""}`;
+  if (/withholding|tax/i.test(text)) return false;
+  return /dividend|payment in lieu/i.test(text);
 }
 
 function applyPositionDividends(positions, dividendBySymbol) {

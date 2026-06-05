@@ -1,11 +1,13 @@
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace IBKRAnalyticsStudio.WebView2;
 
 public sealed class MainForm : Form
 {
+    private const string AppVersion = "2.1.8";
     private const string AppHost = "ibkr-analytics.local";
     private static readonly Color AppBackground = Color.FromArgb(15, 23, 42);
     private static readonly Color AppSurface = Color.FromArgb(17, 26, 44);
@@ -13,14 +15,16 @@ public sealed class MainForm : Form
     private static readonly Color AppText = Color.FromArgb(226, 232, 240);
     private readonly HttpClient flexHttpClient = new();
     private readonly FlexApiClient flexApiClient;
+    private readonly UpdateClient updateClient;
     private readonly Microsoft.Web.WebView2.WinForms.WebView2 webView = new();
     private readonly StatusStrip statusStrip = new();
     private readonly ToolStripStatusLabel statusLabel = new("Starting...");
 
     public MainForm()
     {
-        flexHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("IBKRAnalyticsStudio/2.1.6 WebView2");
+        flexHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"IBKRAnalyticsStudio/{AppVersion} WebView2");
         flexApiClient = new FlexApiClient(flexHttpClient);
+        updateClient = new UpdateClient(flexHttpClient);
 
         Text = "IBKR Analytics Studio";
         Icon? appIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -110,12 +114,28 @@ public sealed class MainForm : Form
     private async void HandleWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
         FlexBridgeRequest? request = FlexBridgeRequest.TryParse(args.WebMessageAsJson);
-        if (request?.Type != "flex.fetch")
+        if (request is null)
         {
             return;
         }
 
         string requestId = string.IsNullOrWhiteSpace(request.RequestId) ? Guid.NewGuid().ToString("N") : request.RequestId;
+        if (request.Type == "app.updateCheck")
+        {
+            await HandleUpdateCheckAsync(requestId);
+            return;
+        }
+
+        if (request.Type == "app.openExternal")
+        {
+            HandleOpenExternal(requestId, request.Url);
+            return;
+        }
+
+        if (request.Type != "flex.fetch")
+        {
+            return;
+        }
 
         try
         {
@@ -146,6 +166,70 @@ public sealed class MainForm : Form
                 error = error.Message
             });
             statusLabel.Text = "IBKR Flex request failed";
+        }
+    }
+
+    private async Task HandleUpdateCheckAsync(string requestId)
+    {
+        try
+        {
+            statusLabel.Text = "Checking for updates...";
+            UpdateCheckResult result = await updateClient.CheckLatestAsync(AppVersion, CancellationToken.None);
+            PostFlexResponse(new
+            {
+                type = "app.updateResult",
+                requestId,
+                ok = true,
+                result
+            });
+            statusLabel.Text = result.UpdateAvailable
+                ? $"Update available: {result.LatestVersion}"
+                : result.ReleaseAvailable ? "App is up to date" : "No release available";
+        }
+        catch (Exception error)
+        {
+            PostFlexResponse(new
+            {
+                type = "app.updateResult",
+                requestId,
+                ok = false,
+                error = error.Message
+            });
+            statusLabel.Text = "Update check failed";
+        }
+    }
+
+    private void HandleOpenExternal(string requestId, string? url)
+    {
+        try
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ||
+                uri.Scheme is not ("http" or "https"))
+            {
+                throw new ArgumentException("Only http and https links can be opened.");
+            }
+
+            Process.Start(new ProcessStartInfo(uri.ToString())
+            {
+                UseShellExecute = true
+            });
+
+            PostFlexResponse(new
+            {
+                type = "app.openExternalResult",
+                requestId,
+                ok = true
+            });
+        }
+        catch (Exception error)
+        {
+            PostFlexResponse(new
+            {
+                type = "app.openExternalResult",
+                requestId,
+                ok = false,
+                error = error.Message
+            });
         }
     }
 

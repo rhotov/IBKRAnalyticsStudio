@@ -1,6 +1,6 @@
-import { decodeReportFile } from "./encoding.js?v=2.1.6";
-import { isChineseIbkrReport } from "./reportLanguage.js?v=2.1.6";
-import { parseIbkrReport } from "./parser.js?v=2.1.6";
+import { decodeReportFile } from "./encoding.js?v=2.1.8";
+import { isChineseIbkrReport } from "./reportLanguage.js?v=2.1.8";
+import { parseIbkrReport } from "./parser.js?v=2.1.8";
 
 const app = document.querySelector("#app");
 
@@ -165,6 +165,134 @@ const copy = {
   }
 };
 
+const CJK_UI_PATTERN = /[\u3400-\u9fff]/;
+const ENGLISH_UI_REPLACEMENTS = [
+  ["主推通过 Windows WebView2 壳自动拉取 Activity Flex Query，不需要手动下载 CSV。", "The Windows WebView2 app can fetch the Activity Flex Query automatically, so you do not need to download CSV files manually."],
+  ["Token 和 Query ID 只保存在本机 WebView2 localStorage，并只发送到 IBKR Flex Web Service。", "Token and Query ID are saved only in local WebView2 localStorage and sent only to IBKR Flex Web Service."],
+  ["Flex API 自动拉取仅在 WebView2 桌面应用中可用。", "Automatic Flex API fetching is available only in the WebView2 desktop app."],
+  ["当前 Flex 报表没有逐日 TWR，无法画出剔除入金影响的收益率曲线。请在 Activity Flex Query 的 Change in NAV 中打开 Breakout by Day，然后重新拉取。", "The current Flex report does not include daily TWR, so the flow-adjusted return curve cannot be drawn. Enable Breakout by Day in Change in NAV for the Activity Flex Query, then fetch the report again."],
+  ["按 IBKR 每日 TWR 累乘计算，已剔除入金、出金等外部现金流影响。", "Calculated from compounded daily IBKR TWR, excluding deposits, withdrawals, and other external cash flows."],
+  ["数据结构正常", "Data structure looks good"],
+  ["未发现关键区块缺失。", "No missing key sections found."],
+  ["检测到这份报表可能是中文导出。当前解析器主要支持英文 IBKR Activity Statement CSV，请将 Language 设置为 English 后重新导出。", "This report appears to be exported in Chinese. The parser primarily supports English IBKR Activity Statement CSV files. Set Language to English and export again."],
+  ["解析失败。请确认文件是 IBKR Activity Statement CSV/TXT，且包含 Header/Data 结构。", "Parsing failed. Confirm the file is an IBKR Activity Statement CSV/TXT with Header/Data structure."],
+  ["读取文件失败，请重新选择报表。", "Failed to read the file. Please choose the report again."],
+  ["示例文件读取失败，请确认通过本地服务打开项目。", "Failed to read the sample file. Make sure the project is opened through the local server."],
+  ["没有可解析的内容。", "No parseable content."],
+  ["报表刷新失败，继续显示缓存", "Report refresh failed, showing cached report"],
+  ["已载入本机缓存", "Loaded local cache"],
+  ["报表刷新中", "Refreshing report"],
+  ["报表已更新", "Report updated"],
+  ["已缓存", "Cached"],
+  ["已实现 + 未实现", "Realized + unrealized"],
+  ["Net Asset Value / Cash", "Net Asset Value / Cash"],
+  ["Trades summary", "Trades summary"],
+  ["CSV sections", "CSV sections"],
+  ["期末净值", "Ending NAV"],
+  ["当前净值", "Current NAV"],
+  ["最新净值", "Latest NAV"],
+  ["现金", "Cash"],
+  ["总盈亏", "Total P/L"],
+  ["时间加权收益", "Time-weighted return"],
+  ["交易订单", "Trade orders"],
+  ["当前持仓", "Current positions"],
+  ["识别区块", "Parsed sections"],
+  ["佣金费用", "Commissions"],
+  ["资产配置占比", "Asset allocation share"],
+  ["资产配置", "Asset allocation"],
+  ["资产类别", "asset class"],
+  ["币种敞口", "Currency exposure"],
+  ["收益率曲线", "Return curve"],
+  ["当前收益率", "Current return"],
+  ["区间高点", "Period high"],
+  ["区间低点", "Period low"],
+  ["已实现盈亏", "Realized P/L"],
+  ["未实现盈亏", "Unrealized P/L"],
+  ["盈亏分布", "P/L Distribution"],
+  ["已实现与未实现盈亏", "Realized and unrealized P/L"],
+  ["主要贡献者", "Top contributors"],
+  ["月度收入与支出", "Monthly income and expenses"],
+  ["已实现交易排行", "Realized trades ranking"],
+  ["净额", "Net"],
+  ["费用", "Fees"],
+  ["月份", "Month"],
+  ["盈亏日历", "P/L calendar"],
+  ["每日交易统计", "Daily trade stats"],
+  ["总交易笔数", "Total trades"],
+  ["总成交额", "Total gross value"],
+  ["日均交易", "Daily average"],
+  ["交易流水", "Trade history"],
+  ["持仓资产分布", "Position asset distribution"],
+  ["按标的市值与现金统计", "By symbol market value and cash"],
+  ["方向", "Direction"],
+  ["币种", "Currency"],
+  ["没有匹配的持仓。", "No matching positions."],
+  ["已解析 CSV 区块", "Parsed CSV sections"],
+  ["基础货币换算", "Base currency conversion"],
+  ["解析诊断", "Diagnostics"],
+  ["区块", "Section"],
+  ["行数", "Rows"],
+  ["汇率", "Rate"],
+  ["代码", "Symbol"],
+  ["贡献百分比", "Contribution %"],
+  ["暂无 ticker 贡献数据。", "No ticker contribution data."],
+  ["日期", "Date"],
+  ["类别", "Category"],
+  ["暂无已实现交易。", "No realized trades."],
+  ["标的", "Symbol"],
+  ["资产", "Asset"],
+  ["数量", "Quantity"],
+  ["市值", "Market value"],
+  ["成本", "Cost"],
+  ["股息", "Dividends"],
+  ["未实现", "Unrealized"],
+  ["暂无持仓市值数据。", "No position market value data."],
+  ["暂无逐日交易数据。", "No daily trade data."],
+  ["当前月份没有交易记录。", "No trades in the selected month."],
+  ["成交时间", "Execution time"],
+  ["股票代码", "Symbol"],
+  ["成交价", "Price"],
+  ["成交金额", "Gross value"],
+  ["佣金", "Commission"],
+  ["暂无可展示的收益率曲线。", "No return curve data to display."],
+  ["暂无可展示的数据。", "No data to display."],
+  ["整段时间加权收益", "Full-period time-weighted return"],
+  ["其他", "Other"],
+  ["暂无月度数据。", "No monthly data."],
+  ["月度净额图表", "Monthly net chart"],
+  ["Github地址", "GitHub"],
+  ["未识别周期", "Unknown period"],
+  ["未识别账户", "Unknown account"],
+  ["股票", "Stocks"],
+  ["期权", "Options"],
+  ["外汇", "Forex"],
+  ["多头", "Long"],
+  ["空头", "Short"],
+  ["买入", "Buy"],
+  ["卖出", "Sell"],
+  ["未找到 Account Information 区块。", "Missing Account Information section."],
+  ["未找到 Net Asset Value 区块。", "Missing Net Asset Value section."],
+  ["未找到 Trades 区块。", "Missing Trades section."],
+  ["未找到 Open Positions 区块。", "Missing Open Positions section."],
+  ["未找到 Realized & Unrealized Performance Summary 区块。", "Missing Realized & Unrealized Performance Summary section."],
+  ["文件结构不像标准 IBKR Activity Statement CSV。", "File structure does not look like a standard IBKR Activity Statement CSV."],
+  ["生成于", "Generated"],
+  ["账户视图", "Account view"],
+  ["持仓数", "Positions"],
+  ["贡献排行", "Contribution ranking"],
+  ["暂无已平仓贡献", "No closed-position contribution"],
+  ["月度趋势", "Monthly trend"],
+  ["暂无持仓市值", "No position market value"],
+  ["分享图预览", "Share image preview"],
+  ["日", "Sun"],
+  ["一", "Mon"],
+  ["二", "Tue"],
+  ["三", "Wed"],
+  ["四", "Thu"],
+  ["五", "Fri"],
+  ["六", "Sat"]
+].sort((a, b) => b[0].length - a[0].length);
+
 const icons = {
   analytics: '<path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 15l3-4 3 2 4-7" /><path d="M17 6h1.8v1.8" />',
   lock: '<rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />',
@@ -193,7 +321,7 @@ const SHARE_IMAGE_SIZES = {
   portrait: { width: 1080, height: 1728 }
 };
 
-const SHARE_LOGO_SRC = "./assets/app-logo.png?v=2.1.6";
+const SHARE_LOGO_SRC = "./assets/app-logo.png?v=2.1.8";
 const SHARE_IMAGE_COLORS = ["#e31937", "#5f6368", "#a41124", "#2b2f35", "#f15b61", "#878d96"];
 const PIE_COLORS = ["#3186f6", "#0b6b5d", "#b57936", "#7c6ee6", "#d85d5d", "#2aa6a1"];
 const POSITION_PIE_COLORS = ["#3186f6", "#0b6b5d", "#b57936", "#7c6ee6", "#d85d5d", "#2aa6a1", "#69a64d", "#bd6aa8"];
@@ -204,6 +332,8 @@ const FLEX_CACHE_DB_NAME = "ibkr-analytics-cache";
 const FLEX_CACHE_STORE_NAME = "reports";
 const FLEX_CACHE_KEY = "latest-flex-report";
 const SP500_BENCHMARK_URL = "https://sp500-proxy.3368517784.workers.dev";
+const APP_VERSION = "2.1.8";
+const UPDATE_CHECK_STORAGE_KEY = "ibkr-analytics-update-checked-at";
 
 let shareLogoImagePromise = null;
 let flexCacheDbPromise = null;
@@ -222,9 +352,14 @@ const state = {
   flexBusy: false,
   cacheStatus: "",
   cacheLoadedAt: "",
+  updateBusy: false,
+  updateStatus: "",
+  updateInfo: null,
+  updateError: "",
   backgroundRefreshBusy: false,
   backgroundRefreshStarted: false,
   autoSampleStarted: false,
+  flexGuideOpen: false,
   shareOpen: false,
   shareFormat: "landscape",
   shareName: localStorage.getItem("ibkr-share-name") || "",
@@ -239,6 +374,7 @@ applyTheme();
 applyLanguage();
 render();
 hydrateCachedFlexReport();
+maybeAutoCheckForUpdates();
 
 function render() {
   if (!state.data) {
@@ -255,6 +391,7 @@ function renderUpload() {
         <div class="top-nav-inner">
           ${renderBrand("IBKR Analytics Studio", t("activityStatement"))}
           <div class="top-actions">
+            <button class="secondary-button update-check-button" id="updateCheckButton" type="button">${icon("download")}${updateButtonLabel()}</button>
             ${renderLanguageSwitch()}
             <button class="icon-button" id="themeToggle" type="button" title="${t("switchTheme")}" aria-label="${t("switchTheme")}">${icon(state.theme === "dark" ? "sun" : "moon")}</button>
           </div>
@@ -273,6 +410,7 @@ function renderUpload() {
             <p>${t("privacyBody")}</p>
           </div>
         </section>
+        ${renderUpdateNotice()}
         ${state.error ? `<div class="error-banner">${escapeHtml(state.error)}</div>` : ""}
         <section class="upload-grid">
           <div class="upload-stack">
@@ -324,33 +462,222 @@ function renderUpload() {
             </details>
           </div>
           <aside class="side-stack">
-            <section class="info-card">
-              <h3>${icon("help")}${t("exportGuide")}</h3>
-              <ol>
-                <li>${t("guideStep1")}</li>
-                <li>${t("guideStep2")}</li>
-                <li>${t("guideStep3")}</li>
-                <li>${t("guideStep4")}</li>
-                <li>${t("guideStep5")}</li>
-              </ol>
-            </section>
+            ${renderFlexSetupGuide()}
             <section class="info-card">
               <h3>${icon("database")}${t("supportedSections")}</h3>
               <div class="tag-list">
-                ${["Net Asset Value", "Open Positions", "Trades", "P/L Summary", "Interest", "Fees", "Forex P/L", "SYEP", "MTM Performance"].map((label) => `<span class="tag">${label}</span>`).join("")}
+                ${["Net Asset Value", "Open Positions", "Trades", "P/L Summary", "Cash Transactions", "Dividend Accruals", "Interest", "Fees", "Forex P/L", "SYEP", "MTM Performance"].map((label) => `<span class="tag">${label}</span>`).join("")}
               </div>
             </section>
           </aside>
         </section>
       </main>
       ${renderFooter()}
+      ${state.flexGuideOpen ? renderFlexGuideDialog() : ""}
     </div>
   `;
 
+  localizeRenderedUi(app);
   bindThemeToggle();
   bindLanguageSwitch();
   bindUploadEvents();
   maybeAutoLoadSample();
+}
+
+function getFlexSetupGuide() {
+  return state.language === "en" ? {
+    title: "Recommended Activity Flex Query",
+    intro: "Use these settings so the app can read NAV, positions, trades, P/L, dividends, fees, interest, FX, and daily TWR correctly.",
+    steps: [
+      {
+        title: "Open Client Portal",
+        body: "Log in to IBKR Client Portal and go to Performance & Reports -> Flex Queries."
+      },
+      {
+        title: "Create Activity Flex Query",
+        body: "Create a custom Activity Flex Query, select the account, and use CSV output."
+      },
+      {
+        title: "Select sections and fields",
+        body: "Click each section below. In each popup, select the top Level/Options where available and click Select All for the field list."
+      },
+      {
+        title: "Copy Query ID and Token",
+        body: "Save the query, copy its Query ID, then open Flex Web Service Configuration and generate a token."
+      }
+    ],
+    sectionsTitle: "Required sections",
+    fieldRuleTitle: "Field selection rule",
+    fieldRules: [
+      "For most sections: select all top Level/Options, then click Select All for fields.",
+      "Change in NAV: choose Realized & Unrealized.",
+      "Transaction Fees: select Summary and Detail. If your IBKR popup also shows Execution, select it too."
+    ],
+    settingsTitle: "Other settings",
+    sections: [
+      "Account Information",
+      "Net Asset Value (NAV) in Base",
+      "Cash Transactions",
+      "Change in NAV",
+      "Change in Dividend Accruals",
+      "Open Positions",
+      "Trades",
+      "Realized and Unrealized Performance Summary in Base",
+      "Forex P/L Details",
+      "Interest Details (Tiers)",
+      "Commission Details",
+      "Transaction Fees",
+      "Mark-to-Market Performance Summary in Base",
+      "Forex Balances"
+    ],
+    settings: [
+      "Format: CSV",
+      "Include header and trailer records?: Yes",
+      "Include column headers?: Yes",
+      "Display single column header row?: No",
+      "Include section code and line descriptor?: Yes",
+      "Period: Last 365 Calendar Days",
+      "Date Format: yyyy-MM-dd",
+      "Time Format: HHmmss",
+      "Date/Time Separator: ,",
+      "Profit and Loss: Default",
+      "Include Offsetting Trade/Cancel Pairs?: No",
+      "Include Currency Rates?: Yes",
+      "Include Audit Trail Fields?: No",
+      "Display Account Alias in Place of Account ID?: No",
+      "Breakout by Day?: Yes"
+    ],
+    finalNote: "Paste the token and Activity Flex Query ID into the IBKR Flex API panel, then fetch the report."
+  } : {
+    title: "推荐 Activity Flex Query 配置",
+    intro: "按这个配置导出，应用可以正确读取 NAV、持仓、交易、盈亏、股息、费用、利息、外汇和每日 TWR。",
+    steps: [
+      {
+        title: "打开 Client Portal",
+        body: "登录 IBKR Client Portal，进入 Performance & Reports -> Flex Queries。"
+      },
+      {
+        title: "创建 Activity Flex Query",
+        body: "新建自定义 Activity Flex Query，选择账户，并使用 CSV 输出。"
+      },
+      {
+        title: "选择 Sections 和字段",
+        body: "逐个点击下面的 Section。每个弹窗里，顶部 Level/Options 尽量全选，下方字段列表点击 Select All。"
+      },
+      {
+        title: "复制 Query ID 和 Token",
+        body: "保存 Query 后复制 Query ID，再进入 Flex Web Service Configuration 生成 Token。"
+      }
+    ],
+    sectionsTitle: "必选 Sections",
+    fieldRuleTitle: "字段选择规则",
+    fieldRules: [
+      "大多数 Section：顶部 Level/Options 尽量全选，下方字段列表点击 Select All。",
+      "Change in NAV：选择 Realized & Unrealized。",
+      "Transaction Fees：选择 Summary、Detail；如果你的 IBKR 弹窗里也出现 Execution，也一起选。"
+    ],
+    settingsTitle: "其它设置",
+    sections: [
+      "Account Information",
+      "Net Asset Value (NAV) in Base",
+      "Cash Transactions",
+      "Change in NAV",
+      "Change in Dividend Accruals",
+      "Open Positions",
+      "Trades",
+      "Realized and Unrealized Performance Summary in Base",
+      "Forex P/L Details",
+      "Interest Details (Tiers)",
+      "Commission Details",
+      "Transaction Fees",
+      "Mark-to-Market Performance Summary in Base",
+      "Forex Balances"
+    ],
+    settings: [
+      "Format: CSV",
+      "Include header and trailer records?: Yes",
+      "Include column headers?: Yes",
+      "Display single column header row?: No",
+      "Include section code and line descriptor?: Yes",
+      "Period: Last 365 Calendar Days",
+      "Date Format: yyyy-MM-dd",
+      "Time Format: HHmmss",
+      "Date/Time Separator: ,",
+      "Profit and Loss: Default",
+      "Include Offsetting Trade/Cancel Pairs?: No",
+      "Include Currency Rates?: Yes",
+      "Include Audit Trail Fields?: No",
+      "Display Account Alias in Place of Account ID?: No",
+      "Breakout by Day?: Yes"
+    ],
+    finalNote: "把 Token 和 Activity Flex Query ID 填到左侧 IBKR Flex API 面板后即可拉取报表。"
+  };
+}
+
+function renderFlexSetupGuide() {
+  const guide = getFlexSetupGuide();
+  const openLabel = state.language === "en" ? "Open full setup guide" : "查看完整配置教程";
+  const summaryItems = state.language === "en"
+    ? ["14 required sections", "CSV with section codes", "Daily TWR enabled"]
+    : ["14 个必选 Sections", "CSV + Section Code", "开启每日 TWR"];
+
+  return `
+    <section class="info-card flex-guide-card">
+      <h3>${icon("help")}${escapeHtml(guide.title)}</h3>
+      <p class="guide-intro">${escapeHtml(guide.intro)}</p>
+      <div class="guide-summary-list">
+        ${summaryItems.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      </div>
+      <button class="primary-button guide-open-button" id="flexGuideOpenButton" type="button">${icon("help")}${escapeHtml(openLabel)}</button>
+    </section>
+  `;
+}
+
+function renderFlexGuideDialog() {
+  const guide = getFlexSetupGuide();
+  return `
+    <div class="share-modal flex-guide-modal" role="dialog" aria-modal="true" aria-labelledby="flexGuideTitle">
+      <button class="share-backdrop" type="button" data-flex-guide-close aria-label="${t("close")}"></button>
+      <section class="share-panel flex-guide-panel">
+        <header class="share-header">
+          <div>
+            <p class="eyebrow">Flex Query</p>
+            <h2 id="flexGuideTitle">${escapeHtml(guide.title)}</h2>
+          </div>
+          <button class="icon-button" type="button" data-flex-guide-close aria-label="${t("close")}">${icon("close")}</button>
+        </header>
+        <div class="flex-guide-body">
+          <p class="guide-intro">${escapeHtml(guide.intro)}</p>
+          <ol class="setup-guide">
+            ${guide.steps.map((step, index) => `
+              <li class="setup-step">
+                <span class="setup-step-index">${index + 1}</span>
+                <span class="setup-step-body">
+                  <strong>${escapeHtml(step.title)}</strong>
+                  <span>${escapeHtml(step.body)}</span>
+                </span>
+              </li>
+            `).join("")}
+          </ol>
+          ${renderGuideList(guide.sectionsTitle, guide.sections, "section")}
+          ${renderGuideList(guide.fieldRuleTitle, guide.fieldRules, "rule")}
+          ${renderGuideList(guide.settingsTitle, guide.settings, "setting")}
+          <p class="guide-note">${escapeHtml(guide.finalNote)}</p>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderGuideList(title, items, type) {
+  return `
+    <div class="guide-checklist guide-checklist-${type}" aria-label="${escapeAttribute(title)}">
+      <strong>${escapeHtml(title)}</strong>
+      <div>
+        ${items.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderDashboard() {
@@ -370,11 +697,13 @@ function renderDashboard() {
               ${icon("search")}
               <input class="search-input" id="globalSearch" type="search" value="${escapeAttribute(state.search)}" placeholder="${t("searchPlaceholder")}" />
             </label>
+            <button class="secondary-button update-check-button" id="dashboardUpdateCheckButton" type="button">${icon("download")}${updateButtonLabel()}</button>
             ${renderLanguageSwitch()}
             <button class="icon-button" id="themeToggle" type="button" title="${t("switchTheme")}" aria-label="${t("switchTheme")}">${icon(state.theme === "dark" ? "sun" : "moon")}</button>
           </div>
         </header>
         <section class="dashboard-content">
+          ${renderUpdateNotice()}
           ${renderActiveTab()}
         </section>
         ${state.shareOpen ? renderShareDialog() : ""}
@@ -382,6 +711,7 @@ function renderDashboard() {
     </div>
   `;
 
+  localizeRenderedUi(app);
   bindDashboardEvents();
   if (state.shareOpen) {
     requestAnimationFrame(renderShareImagePreview);
@@ -431,11 +761,63 @@ function renderFlexSyncStatus() {
   return `<span class="sync-status ${state.backgroundRefreshBusy ? "is-refreshing" : ""}">${escapeHtml(state.cacheStatus)}</span>`;
 }
 
+function renderUpdateNotice() {
+  if (!canUseNativeFlex()) return "";
+  if (state.updateBusy && state.updateStatus === "manual") {
+    return `<section class="update-banner"><div>${icon("download")}<span>${escapeHtml(updateText("checking"))}</span></div></section>`;
+  }
+  if (state.updateInfo?.updateAvailable) {
+    return `
+      <section class="update-banner is-available">
+        <div>
+          ${icon("download")}
+          <span>${escapeHtml(updateText("available", state.updateInfo))}</span>
+        </div>
+        <button class="primary-button" type="button" data-update-download>${escapeHtml(updateText("download"))}</button>
+      </section>
+    `;
+  }
+  if (state.updateStatus === "latest") {
+    return `<section class="update-banner is-muted"><div>${icon("download")}<span>${escapeHtml(updateText("latest", state.updateInfo))}</span></div></section>`;
+  }
+  if (state.updateError && state.updateStatus === "error") {
+    return `<section class="update-banner is-warning"><div>${icon("help")}<span>${escapeHtml(updateText("failed"))}</span></div></section>`;
+  }
+  return "";
+}
+
+function updateButtonLabel() {
+  if (state.updateBusy) return state.language === "en" ? "Checking..." : "检查中...";
+  return state.language === "en" ? "Check updates" : "检查更新";
+}
+
+function updateText(key, info = null) {
+  const latest = info?.latestVersion || "";
+  const current = info?.currentVersion || APP_VERSION;
+  const copy = {
+    zh: {
+      checking: "正在检查更新...",
+      available: `发现新版本 ${latest}，当前版本 ${current}。`,
+      latest: info?.releaseAvailable === false ? `当前没有可用发布版本，本机版本 ${current}。` : `当前已是最新版本 ${current}。`,
+      failed: "更新检查失败，请稍后重试。",
+      download: "下载新版"
+    },
+    en: {
+      checking: "Checking for updates...",
+      available: `Version ${latest} is available. Current version is ${current}.`,
+      latest: info?.releaseAvailable === false ? `No release is available yet. Local version is ${current}.` : `You are on the latest version ${current}.`,
+      failed: "Update check failed. Please try again later.",
+      download: "Download update"
+    }
+  };
+  return copy[state.language]?.[key] || copy.zh[key] || key;
+}
+
 function renderBrand(title, subtitle) {
   return `
     <a class="brand" href="./index.html" aria-label="${escapeAttribute(title)}">
       <span class="brand-mark" aria-hidden="true">
-        <img src="./assets/app-logo.png?v=2.1.6" alt="" />
+        <img src="./assets/app-logo.png?v=2.1.8" alt="" />
       </span>
       <span class="brand-copy">
         <span class="brand-title">${escapeHtml(title)}</span>
@@ -1409,7 +1791,7 @@ function renderFooter() {
     <footer class="footer">
       <div class="footer-inner">
         <span>Github地址</span>
-        <a href="https://github.com/G061206/ibkrstatement" target="_blank" rel="noopener noreferrer">G061206/ibkrstatement</a>
+        <a href="https://github.com/G061206/IBKRAnalyticsStudio" target="_blank" rel="noopener noreferrer">G061206/IBKRAnalyticsStudio</a>
       </div>
     </footer>
   `;
@@ -1425,6 +1807,8 @@ function bindUploadEvents() {
   const flexForgetButton = document.querySelector("#flexForgetButton");
   const flexTokenInput = document.querySelector("#flexTokenInput");
   const flexQueryInput = document.querySelector("#flexQueryInput");
+  const flexGuideOpenButton = document.querySelector("#flexGuideOpenButton");
+  const updateCheckButton = document.querySelector("#updateCheckButton");
 
   chooseButton?.addEventListener("click", (event) => {
     event.preventDefault();
@@ -1463,6 +1847,18 @@ function bindUploadEvents() {
     loadSample();
   });
 
+  flexGuideOpenButton?.addEventListener("click", () => {
+    state.flexGuideOpen = true;
+    renderUpload();
+  });
+
+  document.querySelectorAll("[data-flex-guide-close]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.flexGuideOpen = false;
+      renderUpload();
+    });
+  });
+
   flexTokenInput?.addEventListener("input", (event) => {
     state.flexToken = event.currentTarget.value || "";
     saveFlexCredentials();
@@ -1487,6 +1883,11 @@ function bindUploadEvents() {
     clearFlexCredentials();
     renderUpload();
   });
+
+  updateCheckButton?.addEventListener("click", () => checkForUpdates({ manual: true }));
+  document.querySelectorAll("[data-update-download]").forEach((button) => {
+    button.addEventListener("click", openUpdateDownload);
+  });
 }
 
 function bindDashboardEvents() {
@@ -1506,6 +1907,10 @@ function bindDashboardEvents() {
   document.querySelector("#shareImageButton")?.addEventListener("click", openShareDialog);
   document.querySelector("#mobileShareButton")?.addEventListener("click", openShareDialog);
   document.querySelector("#mobileThemeToggle")?.addEventListener("click", toggleTheme);
+  document.querySelector("#dashboardUpdateCheckButton")?.addEventListener("click", () => checkForUpdates({ manual: true }));
+  document.querySelectorAll("[data-update-download]").forEach((button) => {
+    button.addEventListener("click", openUpdateDownload);
+  });
 
   document.querySelectorAll("[data-share-close]").forEach((button) => {
     button.addEventListener("click", closeShareDialog);
@@ -1589,8 +1994,120 @@ function t(key) {
   return copy[state.language]?.[key] || copy.zh[key] || key;
 }
 
+function localizeRenderedUi(root) {
+  if (state.language !== "en" || !root) return;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    const parent = node.parentElement;
+    if (parent && ["SCRIPT", "STYLE"].includes(parent.tagName)) continue;
+    node.nodeValue = localizeUiString(node.nodeValue);
+  }
+
+  for (const element of root.querySelectorAll("[aria-label], [title], [placeholder]")) {
+    for (const attribute of ["aria-label", "title", "placeholder"]) {
+      if (!element.hasAttribute(attribute)) continue;
+      element.setAttribute(attribute, localizeUiString(element.getAttribute(attribute) || ""));
+    }
+  }
+}
+
+function localizeUiString(value) {
+  if (state.language !== "en" || !value || !CJK_UI_PATTERN.test(value)) return value;
+
+  let output = String(value);
+  for (const [from, to] of ENGLISH_UI_REPLACEMENTS) {
+    output = output.split(from).join(to);
+  }
+
+  return output
+    .replace(/(\d+)\s*个(?:资产类别|asset class|AssetCategory)/g, (_, count) => `${count} asset ${Number(count) === 1 ? "class" : "classes"}`)
+    .replace(/(\d+)\s*股票\s*\/\s*(\d+)\s*外汇/g, (_, stocks, forex) => `${stocks} stocks / ${forex} forex`)
+    .replace(/(\d+)\s*月/g, (_, month) => new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(2000, Number(month) - 1, 1)))
+    .replace(/\s*·\s*/g, " · ");
+}
+
 function canUseNativeFlex() {
   return Boolean(window.chrome?.webview);
+}
+
+function maybeAutoCheckForUpdates() {
+  if (!canUseNativeFlex()) return;
+
+  const lastCheckedAt = Number(localStorage.getItem(UPDATE_CHECK_STORAGE_KEY) || "0");
+  const oneDay = 24 * 60 * 60 * 1000;
+  if (Date.now() - lastCheckedAt < oneDay) return;
+
+  window.setTimeout(() => checkForUpdates({ manual: false }), 900);
+}
+
+function checkForUpdates({ manual = false } = {}) {
+  if (!canUseNativeFlex()) {
+    state.updateStatus = "error";
+    state.updateError = "Update checks are available only in the WebView2 desktop app.";
+    render();
+    return;
+  }
+
+  if (state.updateBusy) return;
+
+  const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  state.updateBusy = true;
+  state.updateStatus = manual ? "manual" : "auto";
+  state.updateError = "";
+  if (manual) render();
+
+  const handleMessage = (event) => {
+    const message = event.data || {};
+    if (message.type !== "app.updateResult" || message.requestId !== requestId) return;
+
+    window.chrome.webview.removeEventListener("message", handleMessage);
+    state.updateBusy = false;
+
+    if (!message.ok) {
+      if (!manual) {
+        state.updateStatus = "";
+        state.updateError = "";
+        localStorage.setItem(UPDATE_CHECK_STORAGE_KEY, String(Date.now()));
+        render();
+        return;
+      }
+
+      state.updateStatus = "error";
+      state.updateError = message.error || "Update check failed.";
+      render();
+      return;
+    }
+
+    state.updateInfo = message.result || null;
+    state.updateStatus = state.updateInfo?.updateAvailable ? "available" : "latest";
+    localStorage.setItem(UPDATE_CHECK_STORAGE_KEY, String(Date.now()));
+    render();
+  };
+
+  window.chrome.webview.addEventListener("message", handleMessage);
+  window.chrome.webview.postMessage({
+    type: "app.updateCheck",
+    requestId,
+    currentVersion: APP_VERSION
+  });
+}
+
+function openUpdateDownload() {
+  const url = state.updateInfo?.downloadUrl || state.updateInfo?.releaseUrl;
+  if (!url) return;
+
+  if (!canUseNativeFlex()) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  window.chrome.webview.postMessage({
+    type: "app.openExternal",
+    requestId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    url
+  });
 }
 
 async function hydrateCachedFlexReport() {
@@ -1814,7 +2331,7 @@ async function readFile(file) {
 
 async function loadSample() {
   try {
-    const response = await fetch("./samples/ibkr-sample-demo.csv?v=2.1.6");
+    const response = await fetch("./samples/ibkr-sample-demo.csv?v=2.1.8");
     if (!response.ok) throw new Error("sample unavailable");
     parseText(await response.text(), "ibkr-sample-demo.csv");
   } catch (error) {

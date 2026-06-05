@@ -103,6 +103,8 @@ Performance & Reports -> Flex Queries -> Activity Flex Query
 - Mark-to-Market Performance Summary in Base
 - Forex Balances
 - Conversion Rates
+- Cash Transactions
+- Change in Dividend Accruals
 
 可选但推荐：
 
@@ -122,6 +124,10 @@ Breakout by Day? -> Yes
 这样 `CNAV / Change in NAV` 会按天返回，每天包含 `TWR`。应用会使用每日 TWR 累乘生成收益率曲线，而不是用 NAV 简单相除。
 
 总览页的“时间加权收益”也会优先使用每日 TWR 的最后一个累计值；如果报表没有逐日 TWR，才回退到 `Net Asset Value` 汇总区块里的 `Time Weighted Rate of Return`。
+
+### Dividends
+
+持仓表的“股息”列会按标的汇总已支付股息，并在没有现金股息记录时显示股息应计净额。Flex Query 需要包含 `Cash Transactions` 和 `Change in Dividend Accruals`。在 `Cash Transactions` 里选择 Dividends / Payment in Lieu of Dividends 相关字段；如果只配置了持仓和交易区块，这一列会显示为 0。
 
 ### S&P 500 基准叠加
 

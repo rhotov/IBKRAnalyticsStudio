@@ -170,7 +170,7 @@ public sealed class FlexApiException : Exception
     }
 }
 
-public sealed record FlexBridgeRequest(string? Type, string? RequestId, string? Token, string? QueryId)
+public sealed record FlexBridgeRequest(string? Type, string? RequestId, string? Token, string? QueryId, string? Url)
 {
     public static FlexBridgeRequest? TryParse(string json)
     {
