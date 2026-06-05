@@ -31,14 +31,9 @@ IBKRAnalyticsStudio.exe
 
 ### Token 保存
 
-应用会记住上次输入的 Token 和 Query ID，保存位置是当前机器的 WebView2 本地存储。
+应用会记住上次输入的 Token 和 Query ID，保存位置是当前机器的 WebView2 本地存储，可点击 **Forget saved** 清除。
 
-- 不会写入源码。
-- 不会打包进 exe。
-- 不会输出到日志。
-- 可通过 **Forget saved** 清除。
-
-Token 仍然是敏感信息。若曾经发给他人或暴露在聊天记录中，建议在 IBKR Client Portal 重新生成。
+Token 是敏感信息。若曾经发给他人或暴露在聊天记录中，建议在 IBKR Client Portal 重新生成。
 
 ### 报表暂存与刷新
 
